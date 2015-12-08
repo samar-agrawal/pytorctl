@@ -15,7 +15,10 @@ import binascii
 import math
 import time
 import logging
-import ConfigParser
+try:
+    import ConfigParser
+except ImportError:
+    import configparser
 
 if sys.version_info < (2, 5):
   from sha import sha as sha1
@@ -221,6 +224,7 @@ class BufSock:
     self._s.send(s)
 
   def close(self):
+    self._s.shutdown(socket.SHUT_RDWR)
     self._s.close()
 
 # SocketServer.TCPServer is nuts.. 
@@ -234,13 +238,13 @@ class ListenSocket:
       try:
         self.s = socket.socket(af, socktype, proto)
         self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-      except socket.error, msg:
+      except socket.error as msg:
         self.s = None
         continue
       try:
         self.s.bind(sa)
         self.s.listen(1)
-      except socket.error, msg:
+      except socket.error as msg:
         self.s.close()
         self.s = None
         continue
@@ -253,6 +257,7 @@ class ListenSocket:
     return conn
 
   def close(self):
+    self._s.shutdown(socket.SHUT_RDWR)
     self.s.close()
 
 
@@ -315,8 +320,12 @@ loglevels = { "DEBUG":  logging.DEBUG,
               "ERROR":  logging.ERROR,
               "NONE":   logging.ERROR + 5 }
 # Set loglevel => name translation.
-for name, value in loglevels.iteritems():
-  logging.addLevelName(value, name)
+try:
+   for name, value in loglevels.iteritems():
+      logging.addLevelName(value, name)
+except AttributeError:
+   for name, value in loglevels.items():
+      logging.addLevelName(value, name)
 
 def plog_use_logger(name):
   """ Set the Python logger to use with plog() by name.
